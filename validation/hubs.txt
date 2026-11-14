@@ -1,0 +1,46 @@
+# Hub stops used to build the validation origin-destination set.
+# One stop name per line, as it appears in stops.txt. Spread across the
+# city: terminals, interchanges, and both ends of the main corridors.
+# Regenerate pairs with:  busplan pairs
+ISBT Kashmere Gate
+Nehru Place
+Anand Vihar ISBT
+Sarai Kale Khan ISBT
+Dhaula Kuan
+AIIMS
+Uttam Nagar Terminal
+Dwarka Sec 2/6
+Azadpur Terminal
+Najafgarh Terminal
+Mehrauli Terminal
+Badarpur Village
+Punjabi Bagh Terminal
+Peera Garhi Chowk
+Mangol Pur Khurd
+Mayur vihar Phase 3 Crossing
+Okhla Phase 1
+Saket Crossing
+Lajpat Nagar Crossing
+ITO AGCR ITO
+Old Delhi Railway Station (T)
+New Delhi Railway Station Gate 2
+Karol Bagh Terminal
+Shahdara Terminal
+Nand Nagri Depot
+Seelampur Metro Station
+Jahangirpuri Metro Station GT Road
+Tilak Nagar Terminal
+C1 Janak Puri
+Hauz Khas
+Narela Terminal
+Mori Gate Terminal
+Shivaji Stadium Terminal
+Inderlok Metro Station
+Wazirpur Depot
+Rohini Sec 22 Terminal
+Bawana Dispensary
+Kapashera Border
+Ambedkar Nagar Terminal
+Nizamuddin Railway Station
+Red Fort
+Munirka DDA Flats

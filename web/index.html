@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delhi bus planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wdth,wght@75..125,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  /* Palette taken from the buses and the road: asphalt, kerb white, the green
+     of DTC buses, the orange of cluster buses, signal amber for delay, and a
+     blue used only for "this bus is being tracked right now". */
+  :root {
+    --asphalt: #1b2a33;
+    --kerb: #ffffff;
+    --ground: #eef1ef;
+    --rule: #d3dad7;
+    --muted: #5b6b73;
+    --dtc: #1e7a46;
+    --cluster: #d9601a;
+    --amber: #f2b705;
+    --tracked: #1d5fd1;
+    --plate-ink: #ffffff;
+    --focus: #1d5fd1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --asphalt: #e9eeec;
+      --kerb: #1b2a33;
+      --ground: #142027;
+      --rule: #33444d;
+      --muted: #9fb0b7;
+      --dtc: #2f9a5d;
+      --cluster: #ee7a33;
+      --amber: #f2b705;
+      --tracked: #6ea3ff;
+      --plate-ink: #ffffff;
+      --focus: #6ea3ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Anek Latin", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px; line-height: 1.4; color: var(--asphalt); background: var(--ground);
+    display: grid; grid-template-columns: minmax(340px, 460px) 1fr;
+    font-variant-numeric: tabular-nums;
+  }
+  .wide { font-variation-settings: "wdth" 118; }
+  aside { background: var(--kerb); overflow-y: auto; border-right: 1px solid var(--rule); }
+  #map { height: 100vh; background: var(--ground); }
+
+  header { padding: 22px 22px 6px; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 750; font-variation-settings: "wdth" 118; letter-spacing: -0.01em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+
+  form { padding: 14px 22px 18px; display: grid; gap: 10px; }
+  .places { display: grid; grid-template-columns: 1fr 44px; gap: 8px 8px; align-items: center; }
+  .places .field:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+  .places .field:nth-of-type(2) { grid-column: 1; grid-row: 2; }
+  .places #swap { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .field { display: grid; gap: 2px; }
+  label { font-size: 13px; color: var(--muted); font-weight: 500; }
+  input {
+    width: 100%; font: inherit; color: inherit; background: var(--ground);
+    border: 1px solid transparent; border-bottom-color: var(--rule); border-radius: 6px 6px 0 0; padding: 9px 10px;
+  }
+  input:focus-visible, button:focus-visible, .option:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .when { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: end; }
+  button { font: inherit; cursor: pointer; color: inherit; border-radius: 6px; border: 1px solid var(--rule); background: var(--kerb); padding: 9px 12px; }
+  button:hover { border-color: var(--asphalt); }
+  #swap { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 50%; }
+  #swap svg { width: 18px; height: 18px; }
+  #go { background: var(--asphalt); color: var(--kerb); border-color: var(--asphalt); font-weight: 650; padding: 9px 16px; white-space: nowrap; }
+  #depart { min-width: 0; }
+  #go[disabled] { opacity: 0.6; cursor: progress; }
+
+  #status { padding: 10px 22px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); background: var(--ground); min-height: 42px; }
+  #status.err { color: var(--asphalt); border-left: 4px solid var(--amber); padding-left: 18px; }
+  #status strong { color: var(--asphalt); font-weight: 600; }
+
+  /* Options are rows, not cards: the route plates carry the identity. */
+  .option { padding: 16px 22px 14px; border-bottom: 1px solid var(--rule); cursor: pointer; display: grid; grid-template-columns: 92px 1fr; column-gap: 14px; }
+  .option[aria-expanded="true"] { background: var(--ground); cursor: default; }
+  .dur { font-size: 40px; line-height: 0.95; font-weight: 800; font-variation-settings: "wdth" 122; letter-spacing: -0.02em; }
+  .dur small { display: block; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); font-variation-settings: "wdth" 100; margin-top: 3px; }
+  .plates { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 30px; }
+  .plate {
+    display: inline-block; min-width: 46px; text-align: center; padding: 2px 9px 1px; border-radius: 5px;
+    font-weight: 750; font-size: 18px; font-variation-settings: "wdth" 112; color: var(--plate-ink); background: var(--dtc); white-space: nowrap;
+  }
+  .plate.cluster { background: var(--cluster); }
+  .plate.walk { background: transparent; color: var(--muted); border: 1.5px dotted var(--muted); font-weight: 600; font-size: 15px; padding: 3px 9px 2px; }
+  .then { color: var(--muted); font-size: 13px; }
+  .times { margin-top: 6px; font-size: 15px; }
+  .times b { font-weight: 650; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .traffic { margin: 8px 0 0; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .traffic .bar { flex: 0 0 96px; height: 8px; border-radius: 4px; background: var(--rule); overflow: hidden; display: flex; }
+  .traffic .bar i { display: block; height: 100%; background: var(--asphalt); }
+  .traffic .bar i + i { background: var(--amber); }
+  .vs b { color: var(--asphalt); font-weight: 650; }
+
+  /* Our ride time against the timetable's, as two bars on one scale. */
+  .cmp { display: grid; grid-template-columns: auto minmax(60px, 170px) auto; gap: 4px 10px; align-items: center; margin: 8px 0 6px; font-size: 13px; }
+  .cmp .bar i { display: block; height: 8px; min-width: 4px; border-radius: 4px; background: var(--asphalt); }
+  .cmp .bar.tt i { background: var(--muted); opacity: 0.55; }
+  .cmp b { color: var(--asphalt); font-weight: 650; }
+
+  /* The strip map: the selected journey as a line diagram, times down the side. */
+  .strip { grid-column: 1 / -1; margin: 16px 0 2px; display: grid; grid-template-columns: 52px 28px 1fr; }
+  .strip .t { font-size: 14px; font-weight: 600; text-align: right; padding-right: 8px; line-height: 20px; }
+  .strip .node { position: relative; }
+  .strip .node::before { content: ""; position: absolute; left: 4px; top: 3px; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--kerb); border: 3px solid var(--asphalt); z-index: 1; }
+  .strip .node.end::before { background: var(--asphalt); }
+  .strip .stopname { font-weight: 600; line-height: 20px; padding-bottom: 2px; }
+  .strip .line { position: relative; }
+  .strip .line::before { content: ""; position: absolute; left: 9px; top: -3px; bottom: -3px; width: 4px; background: var(--c, var(--dtc)); border-radius: 2px; }
+  .strip .line.walk::before { width: 0; left: 9.5px; border-left: 3px dotted var(--muted); background: none; }
+  .strip .leg { padding: 6px 0 12px; font-size: 14px; color: var(--muted); }
+  .strip .leg .head { color: var(--asphalt); font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 2px; }
+  .strip .leg p { margin: 1px 0; }
+  .live { color: var(--tracked); font-weight: 600; }
+  .warn { color: var(--asphalt); }
+  .warn::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--amber); margin-right: 6px; vertical-align: 1px; }
+  .live::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tracked); margin-right: 6px; vertical-align: 1px; }
+  @media (prefers-reduced-motion: no-preference) { .live::before { animation: ping 1.8s ease-out infinite; } }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tracked) 55%, transparent); } 100% { box-shadow: 0 0 0 9px transparent; } }
+
+  .empty { padding: 22px; color: var(--muted); font-size: 15px; }
+  .empty button { display: block; width: 100%; text-align: left; margin-top: 8px; background: var(--ground); border-color: transparent; }
+  .empty button b { color: var(--asphalt); font-weight: 600; }
+  footer { padding: 16px 22px 26px; font-size: 13px; color: var(--muted); }
+  footer p { margin: 0 0 4px; }
+
+  .leaflet-container { font-family: inherit; background: var(--ground); }
+  .leaflet-tile-pane { filter: saturate(0.35) contrast(0.92) brightness(1.04); }
+  @media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) saturate(0.3) brightness(0.9) contrast(0.88); } }
+  .pin { width: 26px; height: 26px; border-radius: 50%; background: var(--asphalt); color: var(--kerb); border: 3px solid var(--kerb); display: grid; place-items: center; font-weight: 750; font-size: 13px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); }
+  .maphint { position: absolute; z-index: 500; left: 50%; transform: translateX(-50%); bottom: 22px; background: var(--kerb); color: var(--asphalt); padding: 7px 14px; border-radius: 18px; font-size: 14px; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25); pointer-events: none; }
+  .mapwrap { position: relative; }
+
+  @media (max-width: 800px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto 52vh; }
+    #map { height: 52vh; }
+    aside { border-right: 0; overflow: visible; }
+    .dur { font-size: 34px; }
+    .option { grid-template-columns: 78px 1fr; }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <header>
+    <h1>Delhi bus planner</h1>
+    <p>Journey times from how buses are actually moving.</p>
+  </header>
+  <form id="f" autocomplete="off">
+    <div class="places">
+      <div class="field">
+        <label for="from">From</label>
+        <input id="from" list="from-list" placeholder="Stop name, or click the map" required>
+        <datalist id="from-list"></datalist>
+      </div>
+      <div class="field">
+        <label for="to">To</label>
+        <input id="to" list="to-list" placeholder="Stop name, or click the map" required>
+        <datalist id="to-list"></datalist>
+      </div>
+      <button type="button" id="swap" aria-label="Swap from and to" title="Swap from and to">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M7 4 3.5 7.5M7 4l3.5 3.5M17 20V4m0 16-3.5-3.5M17 20l3.5-3.5"/></svg>
+      </button>
+    </div>
+    <div class="when">
+      <div class="field">
+        <label for="depart">Leave at (Delhi time)</label>
+        <input id="depart" type="datetime-local">
+      </div>
+      <button type="button" id="now">Now</button>
+      <button id="go">Find buses</button>
+    </div>
+  </form>
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="out"></div>
+  <footer id="foot"></footer>
+</aside>
+<div class="mapwrap">
+  <div id="map"></div>
+  <div class="maphint" id="hint">Click the map to set your start</div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const map = L.map('map', { zoomControl: false }).setView([28.63, 77.2], 11);
+L.control.zoom({ position: 'topright' }).addTo(map);
+// Standard OpenStreetMap tiles (no key needed), toned down in CSS so the
+// route lines read first; inverted for the dark theme.
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+const layer = L.layerGroup().addTo(map);
+let last = null, selected = 0, pick = 'from';
+
+const hm = iso => iso.slice(11, 16);
+const mins = s => Math.round(s / 60);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const plateText = r => r.replace(/(UP|DOWN)\d*$/, '');
+const agencyClass = a => a === 'DTC' ? '' : ' cluster';
+const agencyColor = a => css(a === 'DTC' ? '--dtc' : '--cluster');
+const toward = h => { const i = h.lastIndexOf(' to '); return i < 0 ? h : h.slice(i + 4); };
+const isCoord = s => /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/.test(s);
+const EVIDENCE = {
+  1: 'this stretch at this time of day', 2: 'this stretch at this hour on other days', 4: 'this stretch at other hours',
+  5: 'neighbouring stretches', 6: 'the city-wide pattern', 7: 'the timetable'
+};
+
+function setNow() {
+  // Delhi wall-clock time whatever the browser's timezone is.
+  $('depart').value = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 16);
+}
+setNow();
+$('now').onclick = setNow;
+$('swap').onclick = () => { [$('from').value, $('to').value] = [$('to').value, $('from').value]; };
+
+for (const id of ['from', 'to']) {
+  let timer;
+  $(id).addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = $(id).value.trim();
+    if (q.length < 2 || isCoord(q) || /^[-\d.,\s]+$/.test(q)) return;
+    timer = setTimeout(async () => {
+      const r = await fetch('/stops?limit=8&q=' + encodeURIComponent(q));
+      if (r.ok) $(id + '-list').innerHTML = (await r.json()).map(s => `<option value="${esc(s.name)}">`).join('');
+    }, 150);
+  });
+  $(id).addEventListener('focus', () => setPick(id));
+}
+function setPick(id) {
+  pick = id;
+  $('hint').textContent = id === 'from' ? 'Click the map to set your start' : 'Click the map to set your destination';
+}
+map.on('click', e => {
+  $(pick).value = e.latlng.lat.toFixed(5) + ',' + e.latlng.lng.toFixed(5);
+  if (pick === 'from' && !$('to').value) { setPick('to'); drawEndpoints(); }
+  else if ($('from').value && $('to').value) { $('f').requestSubmit(); }
+  else { setPick(pick === 'from' ? 'to' : 'from'); drawEndpoints(); }
+});
+
+const pin = letter => L.divIcon({ className: '', html: `<div class="pin">${letter}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+function drawEndpoints() {
+  layer.clearLayers();
+  for (const [id, letter] of [['from', 'A'], ['to', 'B']]) {
+    const v = $(id).value;
+    if (isCoord(v)) { const [la, lo] = v.split(',').map(Number); L.marker([la, lo], { icon: pin(letter), interactive: false }).addTo(layer); }
+  }
+}
+
+function drawMap() {
+  layer.clearLayers();
+  if (!last) return;
+  const bounds = [[last.from.lat, last.from.lon], [last.to.lat, last.to.lon]];
+  last.options.forEach((o, i) => {
+    const on = i === selected;
+    for (const l of o.legs) {
+      const pts = l.mode === 'bus' ? l.geometry : [[l.from.lat, l.from.lon], [l.to.lat, l.to.lon]];
+      if (l.mode === 'bus') {
+        if (on) L.polyline(pts, { color: css('--kerb'), weight: 9, opacity: 0.9 }).addTo(layer);
+        L.polyline(pts, { color: on ? agencyColor(l.agency) : css('--muted'), weight: on ? 5.5 : 3, opacity: on ? 1 : 0.45 }).addTo(layer);
+      } else {
+        L.polyline(pts, { color: css('--asphalt'), weight: on ? 3 : 2, opacity: on ? 0.85 : 0.3, dashArray: '2 7', lineCap: 'round' }).addTo(layer);
+      }
+      if (on) {
+        bounds.push(...pts);
+        if (l.mode === 'bus') for (const p of [l.from, l.to])
+          L.circleMarker([p.lat, p.lon], { radius: 5.5, color: css('--asphalt'), fillColor: css('--kerb'), fillOpacity: 1, weight: 2.5 }).bindTooltip(p.name).addTo(layer);
+      }
+    }
+  });
+  L.marker([last.from.lat, last.from.lon], { icon: pin('A') }).bindTooltip('Start: ' + last.from.name).addTo(layer);
+  L.marker([last.to.lat, last.to.lon], { icon: pin('B') }).bindTooltip('Destination: ' + last.to.name).addTo(layer);
+  map.fitBounds(bounds, { padding: [50, 50] });
+}
+
+// What the route was really seen to run in the last hour, beside a boarding that is not a tracked bus.
+function serviceNote(l) {
+  const s = l.service;
+  if (!s) return '';
+  const out = [], buses = n => `${n} bus${n === 1 ? '' : 'es'}`;
+  if (l.boarding === 'timetable' && s.at_first_stop > 0)
+    out.push(`<p>${buses(s.at_first_stop)} of this route ${s.at_first_stop === 1 ? 'is' : 'are'} standing at its first stop now.</p>`);
+  if (s.seen_last_hour === 0 && s.timetabled_last_hour >= 2)
+    out.push(`<p class="warn">No bus of this route passed this stop in the last hour (the timetable has ${s.timetabled_last_hour}). The wait may be longer than shown.</p>`);
+  else if (s.seen_last_hour > 0 || s.timetabled_last_hour > 0)
+    out.push(`<p>In the last hour ${buses(s.seen_last_hour)} of this route passed this stop; the timetable has ${s.timetabled_last_hour}.</p>`);
+  return out.join('');
+}
+function boardingNote(l) {
+  if (l.boarding === 'tracked') return `<p class="live">Tracked live, bus ${esc(l.vehicle)}</p>`;
+  if (l.boarding === 'at_first_stop')
+    return `<p class="live">Bus ${esc(l.vehicle)} is standing at this route's first stop</p><p>It has not set off yet, so the time is an estimate.</p>${serviceNote(l)}`;
+  const every = l.headway_s > 0 ? `; this route runs about every ${mins(l.headway_s)} min` : '';
+  return `<p>Timetable departure, so the time is approximate${every}.</p>${serviceNote(l)}`;
+}
+function evidenceNote(l) {
+  const top = Object.entries(l.basis).sort((a, b) => b[1] - a[1])[0];
+  const live = l.live >= 0.05 ? `, ${Math.round(l.live * 100)}% weighted to buses in the last hour` : '';
+  return `<p>Ride time from ${EVIDENCE[top[0]] || 'the model'}${live}.</p>`;
+}
+// Two bars on one scale: what we expect for this ride and what the timetable allows.
+function timetableNote(l) {
+  const ours = mins(l.duration_s), tt = mins(l.timetable_s), diff = ours - tt;
+  if (diff === 0) return '<p>Same ride time as the timetable.</p>';
+  const top = Math.max(ours, tt), w = v => (100 * v / top).toFixed(1);
+  return `<div class="cmp" role="img" aria-label="Our estimate ${ours} min, timetable ${tt} min">
+      <span>Our estimate</span><span class="bar"><i style="width:${w(ours)}%"></i></span><b>${ours} min</b>
+      <span>Timetable</span><span class="bar tt"><i style="width:${w(tt)}%"></i></span><span>${tt} min</span>
+    </div>
+    <p>${Math.abs(diff)} min ${diff > 0 ? 'longer' : 'shorter'} than the timetable.</p>`;
+}
+
+function strip(o) {
+  const rows = [];
+  const node = (time, name, end) => rows.push(`<div class="t">${time}</div><div class="node${end ? ' end' : ''}"></div><div class="stopname">${esc(name)}</div>`);
+  // A "walk" of a few metres is just standing at the stop: leave it out.
+  const legs = o.legs.filter(l => !(l.mode === 'walk' && l.distance_m < 40));
+  legs.forEach((l, i) => {
+    if (i === 0) node(hm(l.start), l.mode === 'walk' ? 'Start: ' + l.from.name : l.from.name, true);
+    if (l.mode === 'walk') {
+      rows.push(`<div></div><div class="line walk"></div><div class="leg"><p>Walk ${l.distance_m} m, about ${Math.max(1, mins(l.duration_s))} min</p></div>`);
+    } else {
+      const wait = l.wait_s >= 60 ? `<p>Wait ${mins(l.wait_s)} min at the stop.</p>` : '';
+      rows.push(`<div></div><div class="line" style="--c:${agencyColor(l.agency)}"></div><div class="leg">
+        <div class="head"><span class="plate${agencyClass(l.agency)}">${esc(plateText(l.route))}</span><span>toward ${esc(toward(l.headsign))}</span></div>
+        <p>${l.stops} stop${l.stops === 1 ? '' : 's'}, ${mins(l.duration_s)} min on the bus</p>
+        ${timetableNote(l)}${wait}${boardingNote(l)}${evidenceNote(l)}</div>`);
+    }
+    const lastLeg = i === legs.length - 1;
+    node(hm(l.end), lastLeg && l.mode === 'walk' ? 'Destination: ' + l.to.name : l.to.name, lastLeg);
+  });
+  return `<div class="strip">${rows.join('')}</div>`;
+}
+
+function render() {
+  const r = last;
+  $('out').innerHTML = r.options.map((o, i) => {
+    const on = i === selected;
+    const buses = o.legs.filter(l => l.mode === 'bus');
+    const plates = buses.length
+      ? buses.map(l => `<span class="plate${agencyClass(l.agency)}">${esc(plateText(l.route))}</span>`).join('<span class="then">then</span>')
+      : '<span class="plate walk">Walk all the way</span>';
+    const changes = o.transfers === 0 ? (buses.length ? 'Direct' : '') : `${o.transfers} change${o.transfers === 1 ? '' : 's'}`;
+    const detail = [changes, mins(o.walk_s) >= 1 ? `${mins(o.walk_s)} min walking` : '', o.wait_s >= 60 ? `${mins(o.wait_s)} min waiting` : ''].filter(Boolean).join(', ');
+    const rideOurs = mins(buses.reduce((a, l) => a + l.duration_s, 0)), rideTt = mins(buses.reduce((a, l) => a + l.timetable_s, 0));
+    const vs = buses.length && rideOurs !== rideTt ? `<div class="sub vs"><b>${rideOurs} min</b> on buses, where the timetable says ${rideTt} min</div>` : '';
+    let traffic = '';
+    if (o.ride_s > 0) {
+      const d = mins(o.traffic_delay_s), q = o.offpeak_duration_s, share = Math.max(0, Math.min(1, o.traffic_delay_s / o.duration_s));
+      traffic = d >= 2
+        ? `<p class="traffic"><span class="bar" aria-hidden="true"><i style="width:${(1 - share) * 100}%"></i><i style="width:${share * 100}%"></i></span><span>${d} min of this is traffic; about ${mins(q)} min at a quiet hour</span></p>`
+        : `<p class="traffic sub">About the same as at a quiet hour.</p>`;
+    }
+    return `<article class="option" tabindex="0" role="button" aria-expanded="${on}" data-i="${i}">
+      <div class="dur wide">${mins(o.duration_s)}<small>min</small></div>
+      <div>
+        <div class="plates">${plates}</div>
+        <div class="times">Leave <b>${hm(o.leave_at)}</b>, arrive <b>${hm(o.arrive_at)}</b></div>
+        <div class="sub">${detail}</div>
+        ${vs}
+        ${on ? traffic : ''}
+      </div>
+      ${on ? strip(o) : ''}
+    </article>`;
+  }).join('');
+  document.querySelectorAll('.option').forEach(el => {
+    const choose = () => { const i = +el.dataset.i; if (i !== selected) { selected = i; render(); drawMap(); } };
+    el.onclick = choose;
+    el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); } };
+  });
+}
+
+function describeSource(j) {
+  const base = j.travel_times.startsWith('model') ? 'what buses usually take on each stretch' : 'the timetable';
+  if (!j.live) return `Bus times from ${base}. Live data is only used for trips leaving within four hours.`;
+  const r = j.live.city_ratio, pace = Math.abs(r - 1) < 0.03 ? 'at their usual pace' : r > 1 ? `${Math.round((r - 1) * 100)}% slower than usual` : `${Math.round((1 - r) * 100)}% faster than usual`;
+  return `Bus times from ${base}, adjusted for right now: buses are running <strong>${pace}</strong>, with ${j.live.buses_tracked.toLocaleString('en-IN')} tracked.`;
+}
+
+$('f').onsubmit = async e => {
+  e.preventDefault();
+  const st = $('status'), go = $('go');
+  st.className = ''; st.textContent = 'Looking for buses…'; go.disabled = true; $('hint').hidden = true;
+  const p = new URLSearchParams({ from: $('from').value, to: $('to').value });
+  if ($('depart').value) p.set('depart', $('depart').value);
+  try {
+    const r = await fetch('/journeys?' + p);
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    last = j; selected = 0;
+    st.innerHTML = j.options.length ? describeSource(j) : esc(j.note || 'No bus journey found between these places.');
+    if (!j.options.length) st.className = 'err';
+    render(); drawMap();
+  } catch (err) {
+    st.className = 'err'; st.textContent = err.message; $('out').innerHTML = ''; last = null; drawEndpoints();
+  } finally { go.disabled = false; }
+};
+
+// Nothing searched yet: offer real trips to try.
+const EXAMPLES = [['Kashmere Gate ISBT', 'Nehru Place'], ['Dhaula Kuan', 'Shivaji Stadium Terminal'], ['Anand Vihar ISBT', 'AIIMS']];
+$('out').innerHTML = `<div class="empty">Type two stops, or click the map twice. Or try one of these:${EXAMPLES.map(([a, b], i) =>
+  `<button type="button" data-ex="${i}"><b>${a}</b> to <b>${b}</b></button>`).join('')}</div>`;
+document.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => {
+  [$('from').value, $('to').value] = EXAMPLES[+b.dataset.ex]; $('f').requestSubmit();
+});
+
+fetch('/health').then(r => r.json()).then(h => {
+  const age = h.feed_archive.last_snapshot_age_s;
+  const feed = h.feed_archive.collecting ? `Live feed connected, last update ${age} s ago.` : 'Live feed not connected; answers use history only.';
+  const tracked = h.live ? ` ${h.live.buses_tracked.toLocaleString('en-IN')} buses tracked.` : '';
+  $('status').textContent = feed + tracked;
+  $('foot').innerHTML = `<p>${esc(h.basis.charAt(0).toUpperCase() + h.basis.slice(1))}.</p><p>${esc(h.network)}.</p><p>Bus data from Delhi Transport Stack. Map from OpenStreetMap.</p>`;
+}).catch(() => { $('status').textContent = 'Could not reach the planner.'; $('status').className = 'err'; });
+</script>
+</body>
+</html>

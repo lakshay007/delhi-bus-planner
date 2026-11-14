@@ -1,0 +1,13 @@
+# Secrets
+.env
+
+# Data: the static GTFS, the recorded feed, the archive and everything derived from them
+data/
+*.zip
+*.7z
+*.db
+
+# Build output
+target/
+.DS_Store
+__pycache__/

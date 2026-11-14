@@ -1,0 +1,31 @@
+id,from,from_lat,from_lon,to,to_lat,to_lon,crow_km,kind,routes,trips_per_day
+p01,ISBT Kashmere Gate,28.669372,77.227137,Nehru Place,28.547816,77.250825,13.6,direct,425CLUP,24
+p02,Shahdara Terminal,28.674250,77.287093,Dhaula Kuan,28.592946,77.163133,15.1,one_change,273DOWN|AIRPORT-EXP-04UP,42
+p03,Old Delhi Railway Station (T),28.660051,77.227892,Badarpur Village,28.502080,77.300170,18.8,one_change,403UP|479UP,20
+p04,Saket Crossing,28.517682,77.216532,Lajpat Nagar Crossing,28.564241,77.250233,6.1,direct,427DOWN,100
+p05,Mangol Pur Khurd,28.700061,77.094301,Seelampur Metro Station,28.670931,77.265872,17.1,one_change,247DOWN|982DOWN,36
+p06,Badarpur Village,28.502080,77.300170,Shivaji Stadium Terminal,28.632727,77.215483,16.6,one_change,0405(NS)DOWN|966BUP,56
+p07,Azadpur Terminal,28.707819,77.178545,Nizamuddin Railway Station,28.586286,77.252439,15.3,direct,TMS(+)UP,90
+p08,Kapashera Border,28.521387,77.082079,Hauz Khas,28.552950,77.205000,12.5,one_change,717ADOWN|605ADOWN,24
+p09,Wazirpur Depot,28.691809,77.153568,Bawana Dispensary,28.800494,77.036425,16.6,one_change,141UP|D-3305UP,58
+p10,Okhla Phase 1,28.520408,77.277484,Dhaula Kuan,28.592946,77.163133,13.8,direct,874EDOWN,34
+p11,Mehrauli Terminal,28.521570,77.183233,Lajpat Nagar Crossing,28.564241,77.250233,8.1,one_change,534DOWN|D-044DOWN,48
+p12,Dhaula Kuan,28.592946,77.163133,Shivaji Stadium Terminal,28.632727,77.215483,6.7,direct,729DOWN,81
+p13,Nehru Place,28.547816,77.250825,Nizamuddin Railway Station,28.586286,77.252439,4.3,direct,427DOWN,100
+p14,Nizamuddin Railway Station,28.586286,77.252439,Azadpur Terminal,28.707819,77.178545,15.3,one_change,0405(NS)DOWN|175UP,18
+p15,Inderlok Metro Station,28.672944,77.169100,Karol Bagh Terminal,28.648184,77.200775,4.1,direct,144ADOWN,35
+p16,ISBT Kashmere Gate,28.669372,77.227137,Seelampur Metro Station,28.670931,77.265872,3.8,direct,784UP,30
+p17,Jahangirpuri Metro Station GT Road,28.725710,77.162804,Karol Bagh Terminal,28.648184,77.200775,9.3,direct,181DOWN,79
+p18,Old Delhi Railway Station (T),28.660051,77.227892,Bawana Dispensary,28.800494,77.036425,24.3,direct,116UP,43
+p19,ISBT Anand Vihar,28.644974,77.316964,Dhaula Kuan,28.592946,77.163133,16.1,direct,740EXTUP,49
+p20,C1 Janak Puri,28.617804,77.077538,Nehru Place,28.547816,77.250825,18.6,direct,724UP,82
+p21,ITO AGCR /  ITO,28.628032,77.244754,Karol Bagh Terminal,28.648184,77.200775,4.8,direct,976UP,77
+p22,Okhla Phase 1,28.520408,77.277484,Hauz Khas,28.552950,77.205000,7.9,one_change,511AUP|536DOWN,12
+p23,Peera Garhi Chowk,28.679061,77.095943,Bawana Dispensary,28.800494,77.036425,14.6,direct,972DOWN,34
+p24,New Delhi Railway Station Gate 2,28.642609,77.223664,Nehru Place,28.547816,77.250825,10.8,direct,440AUP,34
+p25,Lajpat Nagar Crossing,28.564241,77.250233,Azadpur Terminal,28.707819,77.178545,17.3,direct,0TMS(-)(NS)DOWN,91
+p26,Shivaji Stadium Terminal,28.632727,77.215483,Inderlok Metro Station,28.672944,77.169100,6.3,one_change,522BUP|610DOWN,43
+p27,Tilak Nagar Terminal,28.636462,77.096501,Punjabi Bagh Terminal,28.667447,77.136405,5.2,one_change,813DOWN|908UP,12
+p28,Hauz Khas,28.552950,77.205000,Okhla Phase 1,28.520408,77.277484,7.9,one_change,502UP|511ADOWN,80
+p29,Old Delhi Railway Station (T),28.660051,77.227892,Kapashera Border,28.521387,77.082079,20.9,direct,729UP,78
+p30,Narela Terminal,28.852045,77.088130,Uttam Nagar Terminal,28.625343,77.066856,25.1,direct,882ADOWN,34
