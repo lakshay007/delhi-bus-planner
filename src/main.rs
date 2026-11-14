@@ -11,7 +11,7 @@
 //!   busplan save-model               write the fitted model to a file
 //!   busplan serve                    HTTP API + web page
 //!
-//! See README.md for how to run it and TECHNICAL_NOTE.md for how it works.
+//! See README.md for how to run it and TECHNICAL_NOTE.pdf for how it works.
 
 mod api;
 mod clock;

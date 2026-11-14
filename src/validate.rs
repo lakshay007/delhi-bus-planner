@@ -1,4 +1,4 @@
-//! Numbers for the validation report (VALIDATION_REPORT.md): our
+//! Numbers for the validation report (VALIDATION_REPORT.pdf): our
 //! estimates, Google's and the timetable's, each against what buses did, on
 //! the same bus legs.
 //!

@@ -12,8 +12,8 @@ Delhi's published bus timetable assumes 18 km/h on every road at every hour. Thi
 |---|---|
 | Documented API | [API](#api) below |
 | Map screen to inspect results | `web/index.html`, served at `http://127.0.0.1:8080/` |
-| Technical note | [`TECHNICAL_NOTE.md`](TECHNICAL_NOTE.md) |
-| Validation report | [`VALIDATION_REPORT.md`](VALIDATION_REPORT.md) |
+| Technical note | [`TECHNICAL_NOTE.pdf`](TECHNICAL_NOTE.pdf) |
+| Validation report | [`VALIDATION_REPORT.pdf`](VALIDATION_REPORT.pdf) |
 | Code and run instructions | `src/` and [Run it](#run-it) below |
 
 Accuracy in short (average miss in ride time, from the validation report):
@@ -274,7 +274,8 @@ web/index.html                        the map page (compiled into the program)
 model/busplan-model.gz                the fitted model
 validation/                           the 30 origin-destination pairs and the hubs they were built from
 scripts/make_validation_charts.py     draws the report's two charts
-img/                                  the screenshot and the report's charts
+img/map.png                           the screenshot above
+TECHNICAL_NOTE.pdf, VALIDATION_REPORT.pdf   the two documents
 ```
 
 ## Data and attribution
