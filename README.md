@@ -176,7 +176,7 @@ Top level:
 | `day_type` | `weekday`, `saturday`, `sunday` or `holiday`; each has its own time-of-day profile |
 | `travel_times` | Where bus times came from: `model`, `model+live`, `timetable` or `timetable+live` |
 | `live` | Present when live data was used (departures from 15 minutes ago to 4 hours ahead): `as_of`, `traversals` (stop-to-stop bus movements seen in the last hour), `city_ratio` (1.2 means buses are taking 20% longer than usual right now), `buses_tracked` |
-| `options` | Journeys, best first. Empty with a `note` when none was found |
+| `options` | Journeys, best first: by arrival time, counting five minutes for each change of bus. Empty with a `note` when none was found |
 
 Each option:
 
@@ -240,7 +240,7 @@ Stop names matching the text, for autocomplete.
 
 ### `GET /`
 
-The map page. It is a client of the three endpoints above.
+The map page. It is a client of the three endpoints above. It lists the options it gets with the shortest door-to-door time first.
 
 ## Rebuilding the model from the archive
 
