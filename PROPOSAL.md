@@ -89,23 +89,11 @@ These figures are on the GTFS file the portal serves since mid-November; on the 
 
 - **Riders** get a time that changes with the hour and, for a trip leaving now, a real bus to board.
 - **Operators and planners** get the table underneath: measured time on every stretch at every half-hour, which shows where and when buses lose time.
-- **Other apps** read the published GTFS. The same measurements could replace its 18 km/h times, which would correct every planner that uses the feed (section 9).
+- **Other apps** read the published GTFS. The same measurements could replace its 18 km/h times, which would correct every planner that uses the feed.
 
 ## 8. Limits
 
 - Only time on the bus is validated. Nothing observes a rider's walking and waiting.
-- Where no tracked bus is approaching a stop, our predicted wait is poor: a 24.9-minute average miss, worse than the timetable's 21.9.
 - One month of history. Festival weeks and seasons are not learned. On 13 and 14 November, two light days, history alone ran long and live data corrected it only for trips leaving within about four hours.
 - The estimate leans about 2% short, a known cost of limiting the weight of single very slow buses.
 - Built and run on one Mac. Not yet run on Linux or Windows.
-
-## 9. Plan for Phase 2
-
-None of this is built yet.
-
-1. **A range with each estimate**, from the spread the archive holds for every stretch.
-2. **Waiting time without a tracked bus**, from how often a route really ran in the last hour.
-3. **More history**: further months, festival weeks, and a city-wide factor for light and heavy days.
-4. **A retimed GTFS.** Write the measured times back as `stop_times.txt` by time of day, so any app that reads the feed gets real travel times.
-5. **Metro.** Add the platform's Delhi Metro GTFS to the journey search.
-6. **A hosted instance** on Linux, so the API can be used without building it.
