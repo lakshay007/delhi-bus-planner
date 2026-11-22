@@ -48,7 +48,8 @@ def by_hour(src, dst):
     x = lambda h: L + pw * h / 23.0
     series = [("Google Maps", GOOGLE, "google"), ("Our model, history only", OURS, "model"), ("Our model + live", OURS_LIVE, "model_live")]
     body = [text(L, 28, "Same bus legs, same real rides: how far off each estimate is, by hour of boarding", 15, INK, weight="600")]
-    body.append(text(L, 47, "112,251 rides on 717 bus legs, 25–31 Oct 2026. The timetable is not drawn: it follows Google's line closely.", 12))
+    rides = sum(int(r["rides"]) for r in rows)
+    body.append(text(L, 47, f"{rides:,} rides on the bus legs Google proposes, 25–31 Oct 2026. The timetable is not drawn: it follows Google's line closely.", 12))
     body.append(legend(L, 74, [(n, c) for n, c, _ in series]))
 
     def panel(top, height, lo, hi, ticks, title, key, zero=False):

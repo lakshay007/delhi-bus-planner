@@ -9,7 +9,7 @@ Delhi's published bus timetable assumes 18 km/h on every road at every hour. Goo
 We use the bus fleet's GPS to learn how long buses really take on each stretch of road at each time of day, correct that with the live feed, and plan journeys with those times.
 
 - **It works today.** One program serves a documented API and a map page, with live data.
-- **It is measured.** On 112,251 real bus rides in a week the model never saw, our estimate of the ride time missed by 3.3 minutes on average. Google Maps missed by 7.0 on the same rides.
+- **It is measured.** On 117,933 real bus rides in a week the model never saw, our estimate of the ride time missed by 3.3 minutes on average. Google Maps missed by 7.0 on the same rides.
 - **It shows its evidence.** Every bus leg reports what its time rests on and whether the bus is tracked.
 
 ## 2. The problem
@@ -20,26 +20,26 @@ The brief's own example, Kashmere Gate ISBT to Nehru Place on a Tuesday, as our 
 
 | Leaving at | Best option | Door to door | Time on buses | Timetable, same buses |
 |---|---|---|---|---|
-| 08:30 | 425CL, direct | 55 min | 47 min | 48 min |
+| 08:30 | 425CL, direct | 54 min | 46 min | 48 min |
 | 14:00 | 425CL, direct | 72 min | 64 min | 48 min |
-| 19:00 | 425, direct | 87 min | 79 min | 50 min |
-| 23:00 | 419, then 511A | 62 min | 46 min | 58 min |
+| 19:00 | 706, then 425A | 74 min | 56 min | 52 min |
+| 23:00 | 419, then 493 | 63 min | 49 min | 59 min |
 
-The timetable is about right at 08:30, half an hour short at 19:00 and 12 minutes long at 23:00. One number per ride cannot be right at all three.
+The same direct bus takes 46 minutes on board at 08:30 and 64 at 14:00; the timetable says 48 both times. One number per ride cannot be right all day.
 
 ## 3. What we found in the data
 
 We profiled every dataset before designing anything. The findings that shaped the design:
 
 - **The timetable carries no traffic information.** It is distance divided by 18 km/h. We use it for which buses run and how often, and as the baseline to beat.
-- **Google's Delhi bus times are a timetable too.** We asked Google at five times of day. On all 201 bus legs that came up more than once, the duration was the same to within a minute, at a steady 1.06 times the published timetable's.
+- **Google's Delhi bus times are a timetable too.** We asked Google at nine times over two days. On all 635 bus legs that came up more than once, the duration was the same to within a minute, at a steady 1.06 times the published timetable's.
 - **A route in this GTFS is one direction along one path.** Each GPS point names its route, so linking a bus to the road reduces to "how far along its own route is it".
-- **The timetable is right about how much service runs and wrong about when.** On one October day we saw 58,117 bus runs against 65,322 timetabled trips. But 255,475 observed terminal departures were a median 4.3 minutes from the nearest timetabled start, against 5.0 if buses ignored the timetable altogether.
+- **The timetable does not say when a bus leaves, and lists more trips than run.** 265,720 observed terminal departures were a median 3.3 minutes from the nearest timetabled start, against 3.8 if buses ignored the timetable altogether. On one October day we saw 58,252 bus runs against 80,357 timetabled trips.
 - **The feed needs care.** It refreshes about every 24 seconds and runs about 100 seconds behind. Its speed field is wrong by a factor of about three, its trip id does not match the timetable, and buses parked at depots report all day.
 
 ## 4. Approach
 
-Everything rests on one table built from GPS: "a bus went from stop A to the next stop B, starting at time t, and took x seconds". The network has 14,865 such stretches, and October 2026 gave 38.4 million measurements of them.
+Everything rests on one table built from GPS: "a bus went from stop A to the next stop B, starting at time t, and took x seconds". The network has 15,119 such stretches, and October 2026 gave 38.6 million measurements of them.
 
 1. **Link GPS to routes.** Each point is projected onto its own route's path and followed forward along it. This is map matching in one dimension, and it cannot snap a bus to a parallel road. Loops, wrong direction tags and parked buses are handled explicitly.
 2. **Estimate the usual time.** `seconds = length × city pace × stretch factor × time-of-day factor`, for four kinds of day. Each factor is trusted in proportion to its data, so a stretch with few buses falls back to its neighbours and then to the city's rhythm.
@@ -65,24 +65,24 @@ The technical note gives each step in full.
 
 | Test | Rides | Google Maps | Timetable | Our model | Our model + live |
 |---|---|---|---|---|---|
-| Every bus ride in the unseen week | 509,464 | – | 7.9 min | 4.1 min | 3.4 min |
-| The bus legs Google proposes, same week | 112,251 | 7.0 min | 7.0 min | 3.8 min | 3.3 min |
-| The same legs on the day Google was asked | 1,032 | 6.5 min | 6.8 min | 5.4 min | 4.1 min |
+| Every bus ride in the unseen week | 512,270 | – | 7.9 min | 4.1 min | 3.4 min |
+| The bus legs Google proposes, same week | 117,933 | 7.0 min | 7.0 min | 3.9 min | 3.3 min |
+| The same legs on the two days Google was asked | 2,722 | 6.3 min | 6.2 min | 4.6 min | 3.6 min |
 | 30 origin–destination pairs, four times of day | 108 pair-times | 11.8 min | 12.8 min | 4.7 min | 3.6 min |
 
 ![Average miss and its direction by hour of boarding: Google Maps, our model, and our model with live data](img/validation_by_hour.svg)
 
-Google is nearly 14 minutes too long at 2 am and 9 minutes too short at 6 pm. Ours stays within about a minute of zero lean all day.
+Google is 13.5 minutes too long at 2 am and 9.5 minutes too short at 6 pm. Ours stays within about a minute of zero lean from 5 am to midnight.
 
-**When the bus comes.** For a bus on the road, the predicted arrival at a stop 0 to 5 minutes ahead misses by 0.9 minutes, and 40 to 60 minutes ahead by 4.9. A rider's wait for a tracked bus is missed by 4.6 minutes on average; reading it off the timetable misses by 19.6.
+**When the bus comes.** For a bus on the road, the predicted arrival at a stop 0 to 5 minutes ahead misses by 0.9 minutes, and 40 to 60 minutes ahead by 4.9. A rider's wait for a tracked bus is missed by 4.8 minutes on average; reading it off the timetable misses by 18.6.
 
-The portal replaced its GTFS file in November (new routes, and short-turn trips on 601 routes). The prototype runs on both files, and the tests repeated on the newer one give the same figures. The validation report has the method, the per-pair table and what the tests do not show.
+These figures are on the GTFS file the portal serves since mid-November; on the older file they are the same. The validation report has the method, the per-pair table and what the tests do not show.
 
 ## 6. What is new here
 
 - **Google is scored on its own bus legs.** Each leg Google proposes is matched to the same route and stops in our network, so Google, the timetable and our model are all judged on the same ride against the same real buses. Route choice cannot help or hurt anyone.
 - **Live data stays useful for hours.** We started with a 30-minute fade. Replaying the archive showed that a stretch slower than usual now is mostly still slower hours later; the fitted fade is 6 hours, and live data improves trips leaving up to 4 hours ahead.
-- **Buses that have not left yet.** A bus standing at its route's first stop becomes the route's next departure, at an estimated time. On a day the rule was not fitted on, this cut the miss in waiting time from 19.6 to 9.2 minutes at the stops it affects.
+- **Buses that have not left yet.** A bus standing at its route's first stop becomes the route's next departure, at an estimated time. On a day the rule was not fitted on, this cut the miss in waiting time from 19.7 to 9.4 minutes at the stops it affects.
 - **Answers that show their evidence.** Each bus leg says whether it is tracked, standing at its first stop or timetabled, how many buses really passed the stop in the last hour against the timetable's count, and how much of the estimate rests on that stretch's own history.
 
 ## 7. Who it is for
@@ -93,9 +93,9 @@ The portal replaced its GTFS file in November (new routes, and short-turn trips 
 
 ## 8. Limits
 
-- Only time on the bus is validated. Nothing observes a rider door to door, so walking and waiting are not scored.
-- Where no tracked bus is approaching a stop, our predicted wait is poor: a 27.6-minute average miss, slightly worse than the timetable's 23.4.
-- One month of history. Festival weeks and seasons are not learned. On 13 November, a light day, history alone ran long and live data corrected it only for trips leaving within about four hours.
+- Only time on the bus is validated. Nothing observes a rider's walking and waiting.
+- Where no tracked bus is approaching a stop, our predicted wait is poor: a 24.9-minute average miss, worse than the timetable's 21.9.
+- One month of history. Festival weeks and seasons are not learned. On 13 and 14 November, two light days, history alone ran long and live data corrected it only for trips leaving within about four hours.
 - The estimate leans about 2% short, a known cost of limiting the weight of single very slow buses.
 - Built and run on one Mac. Not yet run on Linux or Windows.
 
@@ -104,8 +104,8 @@ The portal replaced its GTFS file in November (new routes, and short-turn trips 
 None of this is built yet.
 
 1. **A range with each estimate**, from the spread the archive holds for every stretch.
-2. **Waiting time without a tracked bus.** Use the frequency a route really ran in the last hour in place of timetabled start times, and test it by the same replay.
-3. **More history.** Add months as they are released, learn festival weeks, and test a city-wide factor for days that run light or heavy.
+2. **Waiting time without a tracked bus**, from how often a route really ran in the last hour.
+3. **More history**: further months, festival weeks, and a city-wide factor for light and heavy days.
 4. **A retimed GTFS.** Write the measured times back as `stop_times.txt` by time of day, so any app that reads the feed gets real travel times.
-5. **Metro.** Add the platform's Delhi Metro GTFS to the journey search, the multimodal extension the brief welcomes.
+5. **Metro.** Add the platform's Delhi Metro GTFS to the journey search.
 6. **A hosted instance** on Linux, so the API can be used without building it.

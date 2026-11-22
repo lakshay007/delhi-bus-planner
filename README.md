@@ -21,8 +21,8 @@ Accuracy in short (average miss in ride time, from the validation report):
 
 | Test | Google Maps | Timetable | Our model | Our model + live |
 |---|---|---|---|---|
-| Every bus ride in a week the model never saw (509,464 rides) | – | 7.9 min | 4.1 min | 3.4 min |
-| The bus legs Google proposes, same week (112,251 rides) | 7.0 min | 7.0 min | 3.8 min | 3.3 min |
+| Every bus ride in a week the model never saw (512,270 rides) | – | 7.9 min | 4.1 min | 3.4 min |
+| The bus legs Google proposes, same week (117,933 rides) | 7.0 min | 7.0 min | 3.9 min | 3.3 min |
 | 30 origin–destination pairs at four times of day | 11.8 min | 12.8 min | 4.7 min | 3.6 min |
 
 ## Run it
@@ -72,7 +72,7 @@ The newer file adds 274 routes, drops 254, and has short-turn trips on 601 route
 
 The program runs on either file. The shipped model was fitted against the newer one, the one you can download, and has bus times of its own for 14,043 of its 15,119 stretches. The model file is keyed by stop IDs: on the older file, or on any later cut, stretches it does not know fall back to neighbouring stretches or the city-wide pace, and the server says at start-up how many matched.
 
-The validation report's tables were measured on the older file, which was the published one when the tests were run and whose routes October's buses ran on. Section 8 of the report repeats the tests on the newer file: the results are the same.
+The validation report's tables are measured on the newer file. Section 8 of the report gives the same tests on the older one: the results are the same.
 
 ### What to expect after starting
 
@@ -115,7 +115,7 @@ curl 'http://127.0.0.1:8080/journeys?from=Kashmere%20Gate%20ISBT&to=Nehru%20Plac
 curl 'http://127.0.0.1:8080/journeys?from=28.6692,77.2323&to=28.5486,77.2513&depart=2026-11-17T08:30'
 ```
 
-Response, shortened (asked on Saturday 14 Nov 2026 at 16:05):
+Response, shortened (asked on Saturday 14 Nov 2026 at 16:05, with the older GTFS file):
 
 ```json
 {
@@ -260,14 +260,14 @@ When `data/traversals/` exists, `busplan serve` fits on it at start-up (about 2 
 
 ## Checking the accuracy numbers
 
-Section 7 of the validation report lists the command behind each table. On the current GTFS file the ride counts come out a little higher than in the report and the errors the same (report, section 8). What each one needs:
+Section 7 of the validation report lists the command behind each table. The report's numbers are for the current GTFS file; on the older one the ride counts come out a little lower and the errors the same (report, section 8). What each one needs:
 
 | Command | Reproduces | Needs |
 |---|---|---|
 | `busplan eval --test-from 2026-10-25T00:00 --test-until 2026-11-01T00:00` | Test A: every ride in an unseen week | The October archive, imported |
 | `busplan tune --set final` | The cross-validation that chose the model's settings | The same |
 | `busplan validate` | Tests B, C and D against Google Maps | The same, plus Google's answers in `data/google/` |
-| `busplan nextbus` | When the bus comes (report section 4) | A feed recorded with `--collect` over the hours to be replayed, then `busplan extract` |
+| `busplan nextbus --test-from 2026-11-13T11:50 --test-until 2026-11-13T17:40` | When the bus comes (report section 4) | A feed recorded with `--collect` over the hours to be replayed, then `busplan extract` |
 
 Google's answers and our own recording of the feed are not in this repository: Google's terms and the Transport Stack licence do not allow redistributing them. `busplan google --when <time>` fetches Google's answers again with your own key (`GOOGLE_MAPS_API_KEY` in `.env`, Routes API enabled). It stops itself at 2,000 calls a month to stay inside Google's free allowance.
 
