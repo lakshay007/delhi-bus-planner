@@ -336,8 +336,9 @@ pub fn plan(eng: &Engine, from: &str, to: &str, depart: Local, max_options: usiz
             break;
         }
     }
-    // Rank by arrival time plus a penalty per change of bus: a direct bus that
-    // arrives a few minutes later is the better answer for most riders.
+    // Which journeys are offered is judged on arrival time plus a penalty per
+    // change of bus: a direct bus that arrives a few minutes later is the
+    // better answer for most riders.
     let cost = |j: &Journey| j.arrive + TRANSFER_PENALTY_S * (j.rides() as u32 - 1);
     found.sort_by_key(|j| (cost(j), j.rides()));
     // Drop options that are much worse than the best one.
@@ -348,6 +349,8 @@ pub fn plan(eng: &Engine, from: &str, to: &str, depart: Local, max_options: usiz
     found.truncate(max_options);
 
     let mut options: Vec<OptionOut> = found.iter().map(|j| render(net, times, tt, live.as_deref(), &o, &d, depart, day_type, j)).collect();
+    // The order returned is the one a rider reads off: shortest door-to-door time first.
+    fastest_first(&mut options);
 
     // Walking the whole way, when it is short enough to be a real option.
     let direct = dist(o.xy, d.xy) * crate::gtfs::WALK_DETOUR;
@@ -374,7 +377,7 @@ pub fn plan(eng: &Engine, from: &str, to: &str, depart: Local, max_options: usiz
                 end: depart.plus(secs as i64).iso(),
             }],
         });
-        options.sort_by_key(|x| x.arrive_at.clone());
+        fastest_first(&mut options);
     }
 
     let note = if options.is_empty() {
@@ -558,6 +561,11 @@ fn push_walk(legs: &mut Vec<LegOut>, from: Point, to: Point, distance_m: u32, du
 }
 
 /// Gap between the timetabled departures either side of `start`, seconds.
+/// Shortest door-to-door time first; then the earlier arrival; then fewer changes.
+fn fastest_first(options: &mut [OptionOut]) {
+    options.sort_by(|a, b| (a.duration_s, &a.arrive_at, a.transfers).cmp(&(b.duration_s, &b.arrive_at, b.transfers)));
+}
+
 fn headway(starts: &[u32], start: u32) -> u32 {
     let i = starts.partition_point(|&s| s < start);
     let gap = |a: usize, b: usize| starts.get(b).zip(starts.get(a)).map(|(y, x)| y - x);
@@ -624,6 +632,32 @@ pub fn describe(r: &Response) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn options_are_ordered_by_door_to_door_time() {
+        let opt = |summary: &str, duration_s: u32, arrive_at: &str, transfers: u32| OptionOut {
+            leave_at: String::new(),
+            arrive_at: arrive_at.into(),
+            duration_s,
+            walk_s: 0,
+            wait_s: 0,
+            ride_s: duration_s,
+            transfers,
+            slack_before_leaving_s: 0,
+            offpeak_duration_s: duration_s,
+            traffic_delay_s: 0,
+            summary: summary.into(),
+            legs: vec![],
+        };
+        // A direct bus of 63 minutes, and two journeys with a change that take 56 and 55.
+        let mut v = vec![opt("244", 3780, "22:22", 0), opt("706 → 425", 3360, "22:17", 1), opt("167 → 425", 3300, "22:17", 1)];
+        fastest_first(&mut v);
+        assert_eq!(v.iter().map(|o| o.summary.as_str()).collect::<Vec<_>>(), vec!["167 → 425", "706 → 425", "244"]);
+        // Equal times: the earlier arrival first, then the one with fewer changes.
+        let mut v = vec![opt("b", 3000, "09:10", 1), opt("a", 3000, "09:05", 1), opt("c", 3000, "09:05", 0)];
+        fastest_first(&mut v);
+        assert_eq!(v.iter().map(|o| o.summary.as_str()).collect::<Vec<_>>(), vec!["c", "a", "b"]);
+    }
 
     #[test]
     fn recorded_time_leaves_out_holes_and_what_came_before_the_window() {
