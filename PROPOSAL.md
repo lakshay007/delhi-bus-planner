@@ -96,4 +96,4 @@ These figures are on the GTFS file the portal serves since mid-November; on the 
 - Only time on the bus is validated. Nothing observes a rider's walking and waiting.
 - One month of history. Festival weeks and seasons are not learned. On 13 and 14 November, two light days, history alone ran long and live data corrected it only for trips leaving within about four hours.
 - The estimate leans about 2% short, a known cost of limiting the weight of single very slow buses.
-- Built and run on one Mac. Not yet run on Linux or Windows.
+- Built on a Mac and hosted on one Linux server. Not yet run on Windows.
