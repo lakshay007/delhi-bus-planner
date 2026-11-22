@@ -4,12 +4,18 @@ Transport Stack Hackathon 2026, Problem 1: real-time bus traffic model and journ
 
 Delhi's published bus timetable assumes 18 km/h on every road at every hour. This project learns from bus GPS how long buses really take on each stretch of road at each time of day, corrects that with the live feed, and plans bus journeys with those times. It is one program, `busplan`, which serves a JSON API and a map page.
 
+**Try it live: https://d1t0jdf0m74vm2.cloudfront.net** — the map page and the API, running on the live feed.
+
+**Demo video: https://youtu.be/4S2m8QIPsM4**
+
 ![The map page: a journey from Janakpuri to Begumpur, with our ride time set against the timetable's and the first bus tracked live](img/map.png)
 
 ## What is in this repository
 
 | Deliverable | Where |
 |---|---|
+| Working prototype, hosted | https://d1t0jdf0m74vm2.cloudfront.net (the API is at the same address: [`/journeys`](https://d1t0jdf0m74vm2.cloudfront.net/journeys?from=Kashmere%20Gate%20ISBT&to=Nehru%20Place), `/stops`, `/health`) |
+| Demo video | https://youtu.be/4S2m8QIPsM4 |
 | Proposal | [`PROPOSAL.pdf`](PROPOSAL.pdf), or the same text as [`PROPOSAL.md`](PROPOSAL.md) to read here on GitHub |
 | Documented API | [API](#api) below |
 | Map screen to inspect results | `web/index.html`, served at `http://127.0.0.1:8080/` |
@@ -33,7 +39,7 @@ You need:
 - The static GTFS zip from delhi.transportstack.in (dataset "Delhi Buses: GTFS Static Data", `delhi_buses_static_gtfs_v1.zip`). Its licence does not allow us to redistribute it, so it is not in this repository. The portal has served two different files under this name; both work ([Which GTFS file](#which-gtfs-file) below).
 - For live data, an API key for the realtime feed (dataset "Delhi Buses GTFS-RT").
 
-We built and ran this on macOS (Apple silicon). It has not been run on Linux or Windows.
+We built this on macOS (Apple silicon). The hosted copy above is the same code built on Ubuntu 24.04. It has not been run on Windows.
 
 ```sh
 # 1. Static GTFS: put the zip in this folder, then
