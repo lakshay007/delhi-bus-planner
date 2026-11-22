@@ -201,3 +201,25 @@ Google's Delhi bus times come from a published schedule, not from vehicle positi
 ./target/release/busplan nextbus --test-from 2026-11-13T11:50   # section 4
 python3 -I scripts/make_validation_charts.py data/google/validation img   # the two charts
 ```
+
+## 8. The newer timetable file
+
+Everything above was measured with the static GTFS file the portal served until mid-November 2026. The same download now gives a newer file (`feed_version` v32). It adds 274 routes and drops 254, has 80,357 trips where the older one has 65,322, and gives 601 routes short-turn trips, which run only the first part of the route. October's buses ran on the older file's routes: on the five days we checked, 99.89 to 99.99% of GPS records were on routes both files have and none were on routes only the newer one has. In a sample of 14 November, 2.4% of bus positions were on routes only the newer file has.
+
+We matched the same GPS records to the newer file and ran the same tests. Nothing was re-tuned. Average miss in minutes:
+
+| Test | GTFS file | Rides | Google Maps | Timetable | Our model | Our model + live |
+|---|---|---|---|---|---|---|
+| A. Every ride in the unseen week | older | 509,464 | – | 7.9 | 4.1 | 3.4 |
+| | newer | 512,270 | – | 7.9 | 4.1 | 3.4 |
+| B. The bus legs Google proposes, same week | older | 116,457 | 7.0 | 7.0 | 3.9 | 3.3 |
+| | newer | 117,933 | 7.0 | 7.0 | 3.9 | 3.3 |
+| C. The same legs on the days Google was asked (13 and 14 Nov) | older | 2,675 | 6.2 | 6.1 | 4.7 | 3.6 |
+| | newer | 2,722 | 6.3 | 6.2 | 4.6 | 3.6 |
+| D. 30 pairs at four times of day | older | 108 pair-times | 11.8 | 12.8 | 4.7 | 3.6 |
+| | newer | 108 pair-times | 11.8 | 12.8 | 4.7 | 3.6 |
+
+- The results do not depend on which file is used.
+- Tests B and C here use Google's answers for both 13 and 14 November. Sections 1 to 6 were written when only the 13th had been fetched, which is why they show 112,251 and 1,032 rides. With the second day added, the same-day test (C) has two and a half times the rides and our lead in it is wider: 3.6 minutes against Google's 6.2.
+- In the newer file 74% of Google's bus legs match a route and stops, against 77% in the older one. Google still shows some lines the newer file no longer has.
+- The bus-arrival test of section 4, replayed over 09:00 to 12:00 on 14 November: a bus predicted 0 to 5 minutes ahead is missed by 0.9 minutes with either file, and 40 to 60 minutes ahead by 4.4.

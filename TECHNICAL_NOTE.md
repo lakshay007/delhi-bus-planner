@@ -2,7 +2,7 @@
 
 Delhi bus journey planner — Transport Stack Hackathon 2026, Problem 1.
 
-The system rests on one table built from the live GPS feed: **"a bus went from stop A to the next stop B, starting at time t, and took x seconds."** We call a stop-to-next-stop pair a *stretch*; the network has 14,865 of them. Section 1 is how that table is produced, section 2 is how it becomes a travel-time estimate, and section 3 is how live data changes the answer for someone leaving now.
+The system rests on one table built from the live GPS feed: **"a bus went from stop A to the next stop B, starting at time t, and took x seconds."** We call a stop-to-next-stop pair a *stretch*; the network has 14,865 of them (15,119 in the newer cut of the GTFS). Section 1 is how that table is produced, section 2 is how it becomes a travel-time estimate, and section 3 is how live data changes the answer for someone leaving now.
 
 ```
 GPS feed ─► position along the route ─► time at each stop ─► stretch times
@@ -15,7 +15,7 @@ GPS feed ─► position along the route ─► time at each stop ─► stretch
 
 ## 1. How GPS points are linked to routes
 
-**We match each bus to its own route's line, not to a road network.** Every GPS point in the feed carries a `route_id`, and in this GTFS a `route_id` is exactly one direction, one path and one stop sequence. So the question "which road is this bus on" is already answered; what remains is "how far along its route is it". That reduces map matching to one dimension and removes its main failure, snapping to a parallel road.
+**We match each bus to its own route's line, not to a road network.** Every GPS point in the feed carries a `route_id`, and in this GTFS a `route_id` is exactly one direction, one path and one stop sequence. (The newer cut of the GTFS adds short-turn trips on 601 routes. They run the first part of the same path, so buses are still matched to the route's full path, and the journey search knows where each short trip ends.) So the question "which road is this bus on" is already answered; what remains is "how far along its route is it". That reduces map matching to one dimension and removes its main failure, snapping to a parallel road.
 
 1. **Prepare each route once.** Measure the distance along the route's path to every stop. On 93 routes (3.6%) the path loops or doubles back, so the nearest point on the path is the wrong pass; stops are placed with an order-preserving search instead (monotone dynamic programming).
 2. **Project each GPS point onto the path** (linear referencing). A point further than 60 m from the path is off-route and dropped. Moving buses sit a median of 7 m from their path.

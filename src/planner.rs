@@ -325,7 +325,8 @@ pub fn plan(eng: &Engine, from: &str, to: &str, depart: Local, max_options: usiz
         for j in js {
             if !found.iter().any(|f| f.routes() == j.routes()) {
                 if let Some(Leg::Ride { route, .. }) = j.legs.iter().find(|l| matches!(l, Leg::Ride { .. })) {
-                    banned.insert(*route);
+                    // The route and its short-turn trips are one bus line to a rider.
+                    banned.extend(net.family(*route));
                 }
                 found.push(j);
                 added = true;
@@ -473,11 +474,13 @@ fn render(net: &Network, times: &dyn SegTimes, tt: &Timetable, live: Option<&Liv
                     Some(_) => "tracked",
                     None => "timetable",
                 };
+                // Buses are counted on the route's own entry, whichever trip is boarded.
+                let (seen_route, seen_pos) = net.on_main(route, b).unwrap_or((route, b));
                 let service = live.filter(|_| boarding != "tracked").and_then(|l| {
                     l.service.as_ref().map(|s| ServiceOut {
-                        seen_last_hour: s.seen(route, b),
+                        seen_last_hour: s.seen(seen_route, seen_pos),
                         timetabled_last_hour: Service::timetabled(net, route, b, Local::from_epoch(l.ratios.now).tod),
-                        at_first_stop: s.standing(route),
+                        at_first_stop: s.standing(seen_route),
                     })
                 });
                 legs.push(LegOut::Bus {
@@ -497,7 +500,7 @@ fn render(net: &Network, times: &dyn SegTimes, tt: &Timetable, live: Option<&Liv
                     offpeak_s: offpeak.round() as u32,
                     basis: basis.into_iter().map(|(k, v)| (k.to_string(), (v as f32 / total * 100.0).round() / 100.0)).collect(),
                     live: (live_w / total * 100.0).round() / 100.0,
-                    headway_s: headway(&r.starts, board_time.saturating_sub(r.sched[b])),
+                    headway_s: headway(&net.starts_through(route, b), board_time.saturating_sub(r.sched[b])),
                     boarding,
                     vehicle,
                     service,

@@ -33,7 +33,7 @@ We profiled every dataset before designing anything. The findings that shaped th
 
 - **The timetable carries no traffic information.** It is distance divided by 18 km/h. We use it for which buses run and how often, and as the baseline to beat.
 - **Google's Delhi bus times are a timetable too.** We asked Google at five times of day. On all 201 bus legs that came up more than once, the duration was the same to within a minute, at a steady 1.06 times the published timetable's.
-- **A route in this GTFS is one direction, one path and one stop sequence.** Each GPS point names its route, so linking a bus to the road reduces to "how far along its own route is it".
+- **A route in this GTFS is one direction along one path.** Each GPS point names its route, so linking a bus to the road reduces to "how far along its own route is it".
 - **The timetable is right about how much service runs and wrong about when.** On one October day we saw 58,117 bus runs against 65,322 timetabled trips. But 255,475 observed terminal departures were a median 4.3 minutes from the nearest timetabled start, against 5.0 if buses ignored the timetable altogether.
 - **The feed needs care.** It refreshes about every 24 seconds and runs about 100 seconds behind. Its speed field is wrong by a factor of about three, its trip id does not match the timetable, and buses parked at depots report all day.
 
@@ -76,7 +76,7 @@ Google is nearly 14 minutes too long at 2 am and 9 minutes too short at 6 pm. Ou
 
 **When the bus comes.** For a bus on the road, the predicted arrival at a stop 0 to 5 minutes ahead misses by 0.9 minutes, and 40 to 60 minutes ahead by 4.9. A rider's wait for a tracked bus is missed by 4.6 minutes on average; reading it off the timetable misses by 19.6.
 
-The validation report has the method, the per-pair table and what the tests do not show.
+The portal replaced its GTFS file in November (new routes, and short-turn trips on 601 routes). The prototype runs on both files, and the tests repeated on the newer one give the same figures. The validation report has the method, the per-pair table and what the tests do not show.
 
 ## 6. What is new here
 

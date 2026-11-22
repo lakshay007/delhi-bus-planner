@@ -117,6 +117,16 @@ fn next_arrival(tt: &Timetable, route: usize, n: usize, k: usize, tod: u32) -> O
     best
 }
 
+/// The same over every trip of the GTFS route: its short-turn trips call at
+/// the route's first stops too, and a rider there can board any of them.
+fn next_on_route(net: &Network, tt: &Timetable, route: usize, k: usize, tod: u32) -> Option<(u32, Kind)> {
+    let stop = net.routes[route].stops[k];
+    net.family(route as u32)
+        .filter(|&e| net.routes[e as usize].stops.get(k) == Some(&stop))
+        .filter_map(|e| next_arrival(tt, e as usize, net.routes[e as usize].stops.len(), k, tod))
+        .min_by_key(|x| x.0)
+}
+
 fn bucket(lead_s: f64) -> Option<usize> {
     BUCKETS.iter().position(|&(lo, hi)| lead_s >= lo * 60.0 && lead_s < hi * 60.0)
 }
@@ -245,7 +255,7 @@ pub fn replay(net: &Network, data: &Rows, raw_dir: &Path, cutoff: i64, until: i6
             }
             for k in 1..n {
                 let (Some((lv, kind)), Some((old, _)), Some((st, _))) =
-                    (next_arrival(&tts[2], ri, n, k, now_tod), next_arrival(&old_tt, ri, n, k, now_tod), next_arrival(&static_tt, ri, n, k, now_tod))
+                    (next_on_route(net, &tts[2], ri, k, now_tod), next_on_route(net, &old_tt, ri, k, now_tod), next_on_route(net, &static_tt, ri, k, now_tod))
                 else {
                     continue;
                 };

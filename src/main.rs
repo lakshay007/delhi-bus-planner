@@ -374,10 +374,9 @@ fn main() -> Result<()> {
         Cmd::Info => {
             let net = load_network(&cli.gtfs)?;
             let lens: Vec<f32> = net.segments.iter().map(|s| s.len_m).collect();
-            let total_km: f64 = net.routes.iter().map(|r| r.shape.len() / 1000.0).sum();
-            let off: Vec<f64> = net
-                .routes
-                .iter()
+            let mains = || net.routes.iter().enumerate().filter(|(i, _)| net.is_main(*i as u32)).map(|(_, r)| r);
+            let total_km: f64 = mains().map(|r| r.shape.len() / 1000.0).sum();
+            let off: Vec<f64> = mains()
                 .flat_map(|r| r.stops.iter().zip(&r.along).map(|(&s, _)| r.shape.nearest(net.stops[s as usize].xy).d))
                 .collect();
             let far = off.iter().filter(|&&d| d > 150.0).count();

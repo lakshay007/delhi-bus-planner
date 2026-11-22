@@ -166,7 +166,8 @@ pub struct Matcher<'a> {
 impl<'a> Matcher<'a> {
     pub fn new(net: &'a Network) -> Self {
         let mut by_name: HashMap<String, Vec<u32>> = HashMap::new();
-        for (i, r) in net.routes.iter().enumerate() {
+        // GTFS routes only: a short-turn variant repeats the first stops of its route.
+        for (i, r) in net.routes.iter().enumerate().filter(|(i, _)| net.is_main(*i as u32)) {
             by_name.entry(norm(base(&r.name))).or_default().push(i as u32);
         }
         Matcher { net, by_name }
@@ -617,6 +618,7 @@ mod tests {
             stops: (0..4).collect(),
             sched: vec![0, 100, 200, 300],
             starts: vec![0],
+            main: 0,
             shape: Polyline::new(xs),
             along,
             segs: vec![0, 1, 2],
@@ -632,6 +634,7 @@ mod tests {
             footpaths: vec![],
             seg_neighbours: vec![vec![1], vec![0, 2], vec![1]],
             siblings: vec![],
+            variants: vec![],
         }
     }
 

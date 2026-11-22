@@ -200,11 +200,19 @@ impl Service {
         self.hops.get(&route).map_or(0, |v| v.iter().skip(k).take(SERVICE_HOPS).copied().max().unwrap_or(0) as u32)
     }
 
-    /// Timetabled departures of `route` from stop position `k` in the hour before `now_tod`.
+    /// Timetabled departures of `route` from stop position `k` in the hour
+    /// before `now_tod`, counting every trip of the GTFS route that calls
+    /// there (its short-turn trips too).
     pub fn timetabled(net: &Network, route: u32, k: usize, now_tod: u32) -> u32 {
-        let r = &net.routes[route as usize];
-        let off = r.sched.get(k).copied().unwrap_or(0);
-        r.starts.iter().filter(|&&st| st + off <= now_tod && st + off + WINDOW_S as u32 > now_tod).count() as u32
+        let stop = net.routes[route as usize].stops.get(k).copied();
+        net.family(route)
+            .filter(|&e| e == route || (stop.is_some() && net.routes[e as usize].stops.get(k).copied() == stop))
+            .map(|e| {
+                let r = &net.routes[e as usize];
+                let off = r.sched.get(k).copied().unwrap_or(0);
+                r.starts.iter().filter(|&&st| st + off <= now_tod && st + off + WINDOW_S as u32 > now_tod).count() as u32
+            })
+            .sum()
     }
 
     /// Buses of `route` standing at its first stop now.
@@ -263,6 +271,7 @@ mod tests {
             stops: (0..5).collect(),
             sched: vec![0, 100, 200, 300, 400],
             starts: vec![0],
+            main: 0,
             shape: Polyline::new(vec![(0.0, 0.0), (2000.0, 0.0)]),
             along: (0..5).map(|i| i as f64 * 500.0).collect(),
             segs: vec![0, 1, 2, 3],
@@ -278,6 +287,7 @@ mod tests {
             footpaths: vec![],
             seg_neighbours: vec![vec![1], vec![0, 2], vec![1, 3], vec![2]],
             siblings: vec![],
+            variants: vec![],
         }
     }
 

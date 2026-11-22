@@ -30,14 +30,14 @@ Accuracy in short (average miss in ride time, from the validation report):
 You need:
 
 - A recent stable Rust (`rustup` installs it; we used 1.100, and the code needs at least 1.85 for the 2024 edition) and a C compiler, because the build compiles SQLite from source.
-- The static GTFS zip from delhi.transportstack.in (dataset "Delhi Buses static GTFS", `delhi_buses_static_gtfs_v1.zip`). Its licence does not allow us to redistribute it, so it is not in this repository.
+- The static GTFS zip from delhi.transportstack.in (dataset "Delhi Buses: GTFS Static Data", `delhi_buses_static_gtfs_v1.zip`). Its licence does not allow us to redistribute it, so it is not in this repository. The portal has served two different files under this name; both work ([Which GTFS file](#which-gtfs-file) below).
 - For live data, an API key for the realtime feed (dataset "Delhi Buses GTFS-RT").
 
 We built and ran this on macOS (Apple silicon). It has not been run on Linux or Windows.
 
 ```sh
 # 1. Static GTFS: put the zip in this folder, then
-unzip -o -j delhi_buses_static_gtfs_v1.zip -d data/gtfs
+mkdir -p data/gtfs && unzip -o -j delhi_buses_static_gtfs_v1.zip -d data/gtfs
 
 # 2. Your realtime key
 cp .env.example .env        # then edit .env and set TRANSPORTSTACK_API_KEY
@@ -55,9 +55,24 @@ Without a key, leave out `--collect`. The planner then answers from history alon
 
 ### You do not need the October archive
 
-`model/busplan-model.gz` (8 MB) is the fitted travel-time model: what was learned from the organisers' October 2026 archive and our own recording of the live feed in November, about 40 million stop-to-stop bus times. The server loads it at start-up in under a second. It holds statistics per stretch of road, not bus positions.
+`model/busplan-model.gz` (8 MB) is the fitted travel-time model: what was learned from the organisers' October 2026 archive and our own recording of the live feed in November, 41 million stop-to-stop bus times. The server loads it at start-up in under a second. It holds statistics per stretch of road, not bus positions.
 
-The file is keyed by stop IDs. If your GTFS zip is a slightly different cut from ours, stretches the file does not know fall back to neighbouring stretches or the city-wide pace, and the server says how many matched. Ours has SHA-256 `b5940afdaf6154880ec5652fd3e8465dd9183b68477c7c71a287685e0ef91ff8`.
+### Which GTFS file
+
+The portal has served two files as `delhi_buses_static_gtfs_v1.zip`:
+
+| | Until mid-November 2026 | Now (downloaded 22 Nov 2026) |
+|---|---|---|
+| SHA-256 | `b5940afdaf6154880ec5652fd3e8465dd9183b68477c7c71a287685e0ef91ff8` | `8eb05d9c21e7a6b42d7b49de45cb095b70ddee5b8f7716859330c9784c322f05` |
+| `feed_version` in `feed_info.txt` | `v1` | `v32` |
+| Stops, routes, trips | 6,812, 2,554, 65,322 | 6,862, 2,574, 80,357 |
+| Stop-to-stop stretches | 14,865 | 15,119 |
+
+The newer file adds 274 routes, drops 254, and has short-turn trips on 601 routes: 9,314 trips that run only the first part of their route. The program keeps those apart, so a short trip is never offered past the stop where it ends.
+
+The program runs on either file. The shipped model was fitted against the newer one, the one you can download, and has bus times of its own for 14,043 of its 15,119 stretches. The model file is keyed by stop IDs: on the older file, or on any later cut, stretches it does not know fall back to neighbouring stretches or the city-wide pace, and the server says at start-up how many matched.
+
+The validation report's tables were measured on the older file, which was the published one when the tests were run and whose routes October's buses ran on. Section 8 of the report repeats the tests on the newer file: the results are the same.
 
 ### What to expect after starting
 
@@ -221,7 +236,7 @@ Stop names matching the text, for autocomplete.
 }
 ```
 
-`live` is `null` until the feed has been recorded for a few minutes. `feed_archive.collecting` is true when a snapshot arrived in the last two minutes.
+`live` is `null` until the feed has been recorded for a few minutes. `feed_archive.collecting` is true when a snapshot arrived in the last two minutes. This example was recorded on the older GTFS file; on the current one `network` reads `6862 stops, 2574 routes, 80357 trips (9314 of them short-turn trips, on 601 routes), 15119 segments, 23418 walking links`.
 
 ### `GET /`
 
@@ -245,7 +260,7 @@ When `data/traversals/` exists, `busplan serve` fits on it at start-up (about 2 
 
 ## Checking the accuracy numbers
 
-Section 7 of the validation report lists the command behind each table. What each one needs:
+Section 7 of the validation report lists the command behind each table. On the current GTFS file the ride counts come out a little higher than in the report and the errors the same (report, section 8). What each one needs:
 
 | Command | Reproduces | Needs |
 |---|---|---|

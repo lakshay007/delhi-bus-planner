@@ -580,6 +580,7 @@ mod tests {
             stops: (0..4).collect(),
             sched: vec![0, 100, 200, 300],
             starts: vec![0],
+            main: 0,
             shape: Polyline::new(vec![(0.0, 0.0), (1500.0, 0.0)]),
             along: vec![0.0, 500.0, 1000.0, 1500.0],
             segs: vec![0, 1, 2],
@@ -595,6 +596,7 @@ mod tests {
             footpaths: vec![],
             seg_neighbours: vec![vec![1], vec![0, 2], vec![1]],
             siblings: vec![],
+            variants: vec![],
         }
     }
 

@@ -122,6 +122,11 @@ impl Timetable {
                 Some(_) => {}
             }
         }
+        // Routes with a tracked bus that still has a stop ahead of it.
+        let has_tracked = |ri: u32| {
+            let along = &net.routes[ri as usize].along;
+            by_route.get(&ri).is_some_and(|vs| vs.iter().any(|&vi| along.iter().any(|&x| x > states[vi as usize].along + 5.0)))
+        };
         let built: Vec<(Vec<u32>, Vec<Option<u32>>)> = net
             .routes
             .par_iter()
@@ -160,7 +165,8 @@ impl Timetable {
                     a.extend(row);
                     who.push(Some(vi));
                 }
-                let any_tracked = !who.is_empty();
+                // Short-turn trips follow their route: its buses are tracked on the route's own entry.
+                let any_tracked = !who.is_empty() || (r.main != ri as u32 && has_tracked(r.main));
                 let mut starts: Vec<(u32, Option<u32>)> =
                     r.starts.iter().filter(|&&s| !(any_tracked && (s as f64) < now_tod)).map(|&s| (s, None)).collect();
                 if let Some(&vi) = standing.get(&(ri as u32)) {
@@ -484,7 +490,8 @@ mod tests {
     fn toy() -> Network {
         let stops: Vec<Stop> =
             (0..6).map(|i| Stop { id: format!("s{i}"), name: format!("S{i}"), lat: 0.0, lon: 0.0, xy: (i as f64 * 500.0, 0.0) }).collect();
-        let route = |id: &str, st: Vec<u32>, segs: Vec<u32>, starts: Vec<u32>| Route {
+        let route = |main: u32, id: &str, st: Vec<u32>, segs: Vec<u32>, starts: Vec<u32>| Route {
+            main,
             id: id.into(),
             name: format!("{id}UP"),
             desc: String::new(),
@@ -496,7 +503,7 @@ mod tests {
             starts,
             segs,
         };
-        let routes = vec![route("a", vec![0, 1, 2, 3], vec![0, 1, 2], vec![1000, 1600, 2200]), route("b", vec![4, 5], vec![3], vec![1300, 1900])];
+        let routes = vec![route(0, "a", vec![0, 1, 2, 3], vec![0, 1, 2], vec![1000, 1600, 2200]), route(1, "b", vec![4, 5], vec![3], vec![1300, 1900])];
         let segments: Vec<Segment> = [(0, 1), (1, 2), (2, 3), (4, 5)].iter().map(|&(a, b)| Segment { a, b, len_m: 500.0, sched_s: 100.0, n_routes: 1 }).collect();
         let mut stop_routes = vec![vec![]; 6];
         for (ri, r) in routes.iter().enumerate() {
@@ -518,6 +525,7 @@ mod tests {
             footpaths,
             seg_neighbours: vec![vec![]; 4],
             siblings: vec![None, None],
+            variants: vec![vec![], vec![]],
         }
     }
 

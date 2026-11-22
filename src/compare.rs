@@ -272,7 +272,7 @@ pub fn departures(net: &Network, rows: &[Row]) -> String {
     let (mut offs, mut expect, mut within2, mut within5, mut n) = (Vec::new(), Vec::new(), 0usize, 0usize, 0usize);
     let (mut obs_per_hr, mut sched_per_hr) = (Vec::new(), Vec::new());
     for (&(ri, _), deps) in &by_route {
-        let starts = &net.routes[ri as usize].starts;
+        let starts = net.starts_through(ri, 0);
         if starts.len() < 2 {
             continue;
         }
