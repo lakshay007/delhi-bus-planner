@@ -159,7 +159,7 @@ All times in minutes. "Ours" is the model on history only.
 
 ↑ and ↓ are the route's two directions. A dash means fewer than 3 real rides on some leg in that window.
 
-Reading one row: Old Delhi Railway Station to Badarpur on the 405 really takes 55 minutes in the morning, 66 at midday, 83 in the evening and 53 at night. We say 58, 65, 80 and 53. Google says 67 every time.
+Reading one row: for Old Delhi Railway Station to Badarpur, Google proposes the 405 from Red Fort. That ride really takes 55 minutes in the morning, 66 at midday, 83 in the evening and 53 at night. We say 58, 65, 80 and 53. Google says 67 every time. These are times on the bus; Google's door-to-door total for the trip, with the walking, is 82 minutes.
 
 Over the 108 filled cells the average miss is 11.8 minutes for Google, 4.7 for our model and 3.6 with live data.
 
